@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CompressNow - Image Compressor</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-primary: #0a0a0b;
@@ -21,9 +22,22 @@
             --accent-glow: rgba(99, 102, 241, 0.15);
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --radius: 12px;
             --radius-sm: 8px;
             --transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        body.light-mode {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9f9fb;
+            --bg-tertiary: #f3f3f7;
+            --bg-card: #efeff5;
+            --border: #e5e5eb;
+            --border-hover: #d9d9e3;
+            --text-primary: #0a0a0b;
+            --text-secondary: #52525e;
+            --text-muted: #a1a1aa;
         }
 
         * {
@@ -38,9 +52,9 @@
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background 0.3s ease;
         }
 
-        /* Subtle animated gradient background */
         .bg-gradient {
             position: fixed;
             top: 0;
@@ -55,7 +69,6 @@
             z-index: 0;
         }
 
-        /* Navbar */
         .navbar {
             position: fixed;
             top: 0;
@@ -70,6 +83,10 @@
             justify-content: space-between;
             padding: 0 24px;
             z-index: 100;
+        }
+
+        body.light-mode .navbar {
+            background: rgba(255, 255, 255, 0.8);
         }
 
         .nav-brand {
@@ -95,7 +112,25 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 18px;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--border-hover);
         }
 
         .lang-selector {
@@ -121,16 +156,14 @@
             color: var(--text-primary);
         }
 
-        /* Main content */
         .main {
             position: relative;
             z-index: 1;
-            max-width: 720px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 100px 24px 60px;
         }
 
-        /* Hero */
         .hero {
             text-align: center;
             margin-bottom: 48px;
@@ -155,7 +188,6 @@
             line-height: 1.6;
         }
 
-        /* Upload zone */
         .upload-zone {
             border: 1.5px dashed var(--border);
             border-radius: var(--radius);
@@ -226,7 +258,6 @@
             position: relative;
         }
 
-        /* Preview section */
         .preview-section {
             display: none;
             margin-top: 32px;
@@ -242,7 +273,36 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Image comparison */
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preset-btn {
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .preset-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
         .comparison {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -256,6 +316,7 @@
             border-radius: var(--radius);
             padding: 16px;
             text-align: center;
+            position: relative;
         }
 
         .comparison-label {
@@ -274,7 +335,44 @@
             object-fit: contain;
         }
 
-        /* Controls card */
+        .slider-compare {
+            position: relative;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .slider-compare-container {
+            position: relative;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .slider-compare-img {
+            display: block;
+            width: 100%;
+            border-radius: var(--radius-sm);
+        }
+
+        .slider-compare-img.img-wrapper-before {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .slider-compare-slider {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+            cursor: ew-resize;
+            transform: translateX(-50%);
+        }
+
         .controls-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
@@ -373,10 +471,9 @@
             border-color: var(--accent);
         }
 
-        /* Stats */
         .stats-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
             margin-bottom: 16px;
         }
@@ -400,12 +497,69 @@
 
         .stat-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-primary);
         }
 
-        /* Savings badge */
+        .chart-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .chart-container.active {
+            display: block;
+        }
+
+        .history-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .history-section.active {
+            display: block;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .history-item {
+            position: relative;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+        }
+
+        .history-item img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+        }
+
         .savings-badge {
             display: none;
             padding: 10px 16px;
@@ -430,10 +584,16 @@
             color: var(--danger);
         }
 
-        /* Buttons */
         .btn-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .btn-row-full {
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 12px;
         }
 
@@ -478,7 +638,6 @@
             color: var(--text-primary);
         }
 
-        /* Loading */
         .loading {
             display: none;
             text-align: center;
@@ -508,7 +667,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 48px;
@@ -528,7 +686,29 @@
             color: var(--accent);
         }
 
-        /* Responsive */
+        .social-share {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .share-btn {
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .share-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         @media (max-width: 600px) {
             .main {
                 padding: 80px 16px 40px;
@@ -540,6 +720,14 @@
 
             .comparison {
                 grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .presets {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .upload-zone {
@@ -557,6 +745,7 @@
             <span>CompressNow</span>
         </div>
         <div class="nav-actions">
+            <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
             <select class="lang-selector" id="langSelector">
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -588,11 +777,18 @@
                 </svg>
             </div>
             <div class="upload-title" id="uploadTitle">Arrastra tu imagen aquí</div>
-            <div class="upload-subtitle" id="uploadSubtitle">o haz clic para seleccionar · JPG, PNG, WebP · máx 10MB</div>
-            <input type="file" id="fileInput" accept="image/*">
+            <div class="upload-subtitle" id="uploadSubtitle">o haz clic para seleccionar · JPG, PNG, WebP, TIFF, BMP, GIF · máx 10MB</div>
+            <input type="file" id="fileInput" accept="image/*" multiple>
         </div>
 
         <div class="preview-section" id="previewSection">
+            <div class="presets" id="presets">
+                <button class="preset-btn" data-quality="100" id="presetMax">Máxima</button>
+                <button class="preset-btn" data-quality="80" id="presetHigh">Alta</button>
+                <button class="preset-btn" data-quality="60" id="presetMed">Media</button>
+                <button class="preset-btn" data-quality="40" id="presetLow">Baja</button>
+            </div>
+
             <div class="comparison">
                 <div class="comparison-item">
                     <div class="comparison-label" id="labelOriginal">Original</div>
@@ -634,9 +830,29 @@
                     <div class="stat-label" id="labelCompSize">Comprimido</div>
                     <div class="stat-value" id="compressedSize">0 KB</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-label" id="labelDimensions">Dimensiones</div>
+                    <div class="stat-value" id="dimensions">0x0</div>
+                </div>
+            </div>
+
+            <div class="chart-container" id="chartContainer">
+                <canvas id="compressionChart"></canvas>
+            </div>
+
+            <div class="history-section" id="historySection">
+                <div class="history-title" id="historyTitle">Historial</div>
+                <div class="history-grid" id="historyGrid"></div>
             </div>
 
             <div class="savings-badge" id="savingsBadge"></div>
+
+            <div class="social-share" id="socialShare" style="display: none;">
+                <button class="share-btn" id="shareTwitter">𝕏</button>
+                <button class="share-btn" id="shareFb">f</button>
+                <button class="share-btn" id="shareWa">💬</button>
+                <button class="share-btn" id="shareCopy">📋</button>
+            </div>
 
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
@@ -653,21 +869,27 @@
                     <span id="btnResetText">Nueva imagen</span>
                 </button>
             </div>
+
+            <div class="btn-row-full">
+                <button class="btn btn-secondary" id="batchBtn" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span id="btnBatchText">Cargar más imágenes</span>
+                </button>
+            </div>
         </div>
 
         <div class="footer">
-            <p>© 2026 CompressNow · <a href="#">Privacy</a> · <a href="#">GitHub</a></p>
+            <p>© 2026 CompressNow · <a href="mailto:fazeogve@gmail.com">Contacto: fazeogve@gmail.com</a> · <a href="#">GitHub</a></p>
         </div>
     </main>
 
     <script>
-        // ===== TRANSLATIONS =====
         const translations = {
             es: {
                 heroTitle: "Comprime tus imágenes",
                 heroSubtitle: "Reduce el peso de tus archivos sin perder calidad. Rápido, gratuito y privado.",
                 uploadTitle: "Arrastra tu imagen aquí",
-                uploadSubtitle: "o haz clic para seleccionar · JPG, PNG, WebP · máx 10MB",
+                uploadSubtitle: "o haz clic para seleccionar · JPG, PNG, WebP, TIFF, BMP, GIF · máx 10MB",
                 labelOriginal: "Original",
                 labelCompressed: "Comprimida",
                 labelQuality: "Calidad",
@@ -675,17 +897,24 @@
                 optAuto: "Automático (mantener original)",
                 labelOrigSize: "Original",
                 labelCompSize: "Comprimido",
+                labelDimensions: "Dimensiones",
                 loadingText: "Comprimiendo...",
                 btnDownloadText: "Descargar",
                 btnResetText: "Nueva imagen",
+                btnBatchText: "Cargar más imágenes",
+                presetMax: "Máxima",
+                presetHigh: "Alta",
+                presetMed: "Media",
+                presetLow: "Baja",
                 savingsPositive: "Ahorrado",
-                savingsNegative: "Aumentado"
+                savingsNegative: "Aumentado",
+                historyTitle: "Historial"
             },
             en: {
                 heroTitle: "Compress your images",
                 heroSubtitle: "Reduce file size without losing quality. Fast, free and private.",
                 uploadTitle: "Drag your image here",
-                uploadSubtitle: "or click to select · JPG, PNG, WebP · max 10MB",
+                uploadSubtitle: "or click to select · JPG, PNG, WebP, TIFF, BMP, GIF · max 10MB",
                 labelOriginal: "Original",
                 labelCompressed: "Compressed",
                 labelQuality: "Quality",
@@ -693,17 +922,24 @@
                 optAuto: "Automatic (keep original)",
                 labelOrigSize: "Original",
                 labelCompSize: "Compressed",
+                labelDimensions: "Dimensions",
                 loadingText: "Compressing...",
                 btnDownloadText: "Download",
                 btnResetText: "New image",
+                btnBatchText: "Load more images",
+                presetMax: "Maximum",
+                presetHigh: "High",
+                presetMed: "Medium",
+                presetLow: "Low",
                 savingsPositive: "Saved",
-                savingsNegative: "Increased"
+                savingsNegative: "Increased",
+                historyTitle: "History"
             },
             fr: {
                 heroTitle: "Compressez vos images",
                 heroSubtitle: "Réduisez la taille sans perte de qualité. Rapide, gratuit et privé.",
                 uploadTitle: "Glissez votre image ici",
-                uploadSubtitle: "ou cliquez pour sélectionner · JPG, PNG, WebP · max 10MB",
+                uploadSubtitle: "ou cliquez pour sélectionner · JPG, PNG, WebP, TIFF, BMP, GIF · max 10MB",
                 labelOriginal: "Original",
                 labelCompressed: "Compressée",
                 labelQuality: "Qualité",
@@ -711,17 +947,24 @@
                 optAuto: "Automatique (garder l'original)",
                 labelOrigSize: "Original",
                 labelCompSize: "Compressé",
+                labelDimensions: "Dimensions",
                 loadingText: "Compression...",
                 btnDownloadText: "Télécharger",
                 btnResetText: "Nouvelle image",
+                btnBatchText: "Charger plus d'images",
+                presetMax: "Maximum",
+                presetHigh: "Haute",
+                presetMed: "Moyenne",
+                presetLow: "Basse",
                 savingsPositive: "Économisé",
-                savingsNegative: "Augmenté"
+                savingsNegative: "Augmenté",
+                historyTitle: "Historique"
             },
             de: {
                 heroTitle: "Bilder komprimieren",
                 heroSubtitle: "Dateigröße reduzieren ohne Qualitätsverlust. Schnell, kostenlos und privat.",
                 uploadTitle: "Bild hierher ziehen",
-                uploadSubtitle: "oder klicken zum Auswählen · JPG, PNG, WebP · max 10MB",
+                uploadSubtitle: "oder klicken zum Auswählen · JPG, PNG, WebP, TIFF, BMP, GIF · max 10MB",
                 labelOriginal: "Original",
                 labelCompressed: "Komprimiert",
                 labelQuality: "Qualität",
@@ -729,17 +972,24 @@
                 optAuto: "Automatisch (Original beibehalten)",
                 labelOrigSize: "Original",
                 labelCompSize: "Komprimiert",
+                labelDimensions: "Abmessungen",
                 loadingText: "Komprimierung...",
                 btnDownloadText: "Herunterladen",
                 btnResetText: "Neues Bild",
+                btnBatchText: "Weitere Bilder laden",
+                presetMax: "Maximum",
+                presetHigh: "Hoch",
+                presetMed: "Mittel",
+                presetLow: "Niedrig",
                 savingsPositive: "Gespart",
-                savingsNegative: "Erhöht"
+                savingsNegative: "Erhöht",
+                historyTitle: "Verlauf"
             },
             pt: {
                 heroTitle: "Comprima suas imagens",
                 heroSubtitle: "Reduza o tamanho sem perder qualidade. Rápido, gratuito e privado.",
                 uploadTitle: "Arraste sua imagem aqui",
-                uploadSubtitle: "ou clique para selecionar · JPG, PNG, WebP · máx 10MB",
+                uploadSubtitle: "ou clique para selecionar · JPG, PNG, WebP, TIFF, BMP, GIF · máx 10MB",
                 labelOriginal: "Original",
                 labelCompressed: "Comprimida",
                 labelQuality: "Qualidade",
@@ -747,17 +997,24 @@
                 optAuto: "Automático (manter original)",
                 labelOrigSize: "Original",
                 labelCompSize: "Comprimido",
+                labelDimensions: "Dimensões",
                 loadingText: "Comprimindo...",
                 btnDownloadText: "Baixar",
                 btnResetText: "Nova imagem",
+                btnBatchText: "Carregar mais imagens",
+                presetMax: "Máxima",
+                presetHigh: "Alta",
+                presetMed: "Média",
+                presetLow: "Baixa",
                 savingsPositive: "Economizado",
-                savingsNegative: "Aumentado"
+                savingsNegative: "Aumentado",
+                historyTitle: "Histórico"
             },
             it: {
                 heroTitle: "Comprimi le tue immagini",
                 heroSubtitle: "Riduci le dimensioni senza perdere qualità. Veloce, gratuito e privato.",
                 uploadTitle: "Trascina la tua immagine qui",
-                uploadSubtitle: "o clicca per selezionare · JPG, PNG, WebP · max 10MB",
+                uploadSubtitle: "o clicca per selezionare · JPG, PNG, WebP, TIFF, BMP, GIF · max 10MB",
                 labelOriginal: "Originale",
                 labelCompressed: "Compressa",
                 labelQuality: "Qualità",
@@ -765,17 +1022,24 @@
                 optAuto: "Automatico (mantieni originale)",
                 labelOrigSize: "Originale",
                 labelCompSize: "Compresso",
+                labelDimensions: "Dimensioni",
                 loadingText: "Compressione...",
                 btnDownloadText: "Scarica",
                 btnResetText: "Nuova immagine",
+                btnBatchText: "Carica altre immagini",
+                presetMax: "Massima",
+                presetHigh: "Alta",
+                presetMed: "Media",
+                presetLow: "Bassa",
                 savingsPositive: "Risparmiato",
-                savingsNegative: "Aumentato"
+                savingsNegative: "Aumentato",
+                historyTitle: "Cronologia"
             },
             ja: {
                 heroTitle: "画像を圧縮",
                 heroSubtitle: "品質を落とさずファイルサイズを削減。高速・無料・プライベート。",
                 uploadTitle: "画像をここにドラッグ",
-                uploadSubtitle: "またはクリックして選択 · JPG, PNG, WebP · 最大10MB",
+                uploadSubtitle: "またはクリックして選択 · JPG, PNG, WebP, TIFF, BMP, GIF · 最大10MB",
                 labelOriginal: "オリジナル",
                 labelCompressed: "圧縮後",
                 labelQuality: "品質",
@@ -783,17 +1047,24 @@
                 optAuto: "自動（元の形式を維持）",
                 labelOrigSize: "オリジナル",
                 labelCompSize: "圧縮後",
+                labelDimensions: "寸法",
                 loadingText: "圧縮中...",
                 btnDownloadText: "ダウンロード",
                 btnResetText: "新しい画像",
+                btnBatchText: "さらに画像を読み込む",
+                presetMax: "最大",
+                presetHigh: "高",
+                presetMed: "中",
+                presetLow: "低",
                 savingsPositive: "削減",
-                savingsNegative: "増加"
+                savingsNegative: "増加",
+                historyTitle: "履歴"
             },
             ko: {
                 heroTitle: "이미지 압축",
                 heroSubtitle: "품질 손실 없이 파일 크기를 줄이세요. 빠르고, 무료이며, 비공개입니다.",
                 uploadTitle: "이미지를 여기에 드래그",
-                uploadSubtitle: "또는 클릭하여 선택 · JPG, PNG, WebP · 최대 10MB",
+                uploadSubtitle: "또는 클릭하여 선택 · JPG, PNG, WebP, TIFF, BMP, GIF · 최대 10MB",
                 labelOriginal: "원본",
                 labelCompressed: "압축됨",
                 labelQuality: "품질",
@@ -801,17 +1072,24 @@
                 optAuto: "자동 (원본 유지)",
                 labelOrigSize: "원본",
                 labelCompSize: "압축됨",
+                labelDimensions: "치수",
                 loadingText: "압축 중...",
                 btnDownloadText: "다운로드",
                 btnResetText: "새 이미지",
+                btnBatchText: "더 많은 이미지 로드",
+                presetMax: "최대",
+                presetHigh: "높음",
+                presetMed: "중간",
+                presetLow: "낮음",
                 savingsPositive: "절약",
-                savingsNegative: "증가"
+                savingsNegative: "증가",
+                historyTitle: "기록"
             },
             zh: {
                 heroTitle: "压缩你的图片",
                 heroSubtitle: "在不损失质量的情况下减小文件大小。快速、免费且私密。",
                 uploadTitle: "将图片拖到这里",
-                uploadSubtitle: "或点击选择 · JPG, PNG, WebP · 最大10MB",
+                uploadSubtitle: "或点击选择 · JPG, PNG, WebP, TIFF, BMP, GIF · 最大10MB",
                 labelOriginal: "原图",
                 labelCompressed: "压缩后",
                 labelQuality: "质量",
@@ -819,17 +1097,24 @@
                 optAuto: "自动（保持原格式）",
                 labelOrigSize: "原图",
                 labelCompSize: "压缩后",
+                labelDimensions: "尺寸",
                 loadingText: "压缩中...",
                 btnDownloadText: "下载",
                 btnResetText: "新图片",
+                btnBatchText: "加载更多图片",
+                presetMax: "最大",
+                presetHigh: "高",
+                presetMed: "中",
+                presetLow: "低",
                 savingsPositive: "节省",
-                savingsNegative: "增加"
+                savingsNegative: "增加",
+                historyTitle: "历史"
             },
             ru: {
                 heroTitle: "Сжатие изображений",
                 heroSubtitle: "Уменьшите размер файла без потери качества. Быстро, бесплатно и конфиденциально.",
                 uploadTitle: "Перетащите изображение сюда",
-                uploadSubtitle: "или нажмите для выбора · JPG, PNG, WebP · макс 10MB",
+                uploadSubtitle: "или нажмите для выбора · JPG, PNG, WebP, TIFF, BMP, GIF · макс 10MB",
                 labelOriginal: "Оригинал",
                 labelCompressed: "Сжатое",
                 labelQuality: "Качество",
@@ -837,17 +1122,24 @@
                 optAuto: "Автоматически (сохранить оригинал)",
                 labelOrigSize: "Оригинал",
                 labelCompSize: "Сжатое",
+                labelDimensions: "Размеры",
                 loadingText: "Сжатие...",
                 btnDownloadText: "Скачать",
                 btnResetText: "Новое изображение",
+                btnBatchText: "Загрузить больше изображений",
+                presetMax: "Максимум",
+                presetHigh: "Высокое",
+                presetMed: "Среднее",
+                presetLow: "Низкое",
                 savingsPositive: "Сэкономлено",
-                savingsNegative: "Увеличено"
+                savingsNegative: "Увеличено",
+                historyTitle: "История"
             },
             ar: {
                 heroTitle: "ضغط الصور",
                 heroSubtitle: "قلل حجم الملف دون فقدان الجودة. سريع ومجاني وخاص.",
                 uploadTitle: "اسحب صورتك هنا",
-                uploadSubtitle: "أو انقر للاختيار · JPG, PNG, WebP · حد أقصى 10MB",
+                uploadSubtitle: "أو انقر للاختيار · JPG, PNG, WebP, TIFF, BMP, GIF · حد أقصى 10MB",
                 labelOriginal: "الأصلي",
                 labelCompressed: "مضغوطة",
                 labelQuality: "الجودة",
@@ -855,15 +1147,25 @@
                 optAuto: "تلقائي (الحفاظ على الأصلي)",
                 labelOrigSize: "الأصلي",
                 labelCompSize: "مضغوط",
+                labelDimensions: "الأبعاد",
                 loadingText: "جاري الضغط...",
                 btnDownloadText: "تحميل",
                 btnResetText: "صورة جديدة",
+                btnBatchText: "تحميل المزيد من الصور",
+                presetMax: "الأقصى",
+                presetHigh: "عالي",
+                presetMed: "متوسط",
+                presetLow: "منخفض",
                 savingsPositive: "تم التوفير",
-                savingsNegative: "زيادة"
+                savingsNegative: "زيادة",
+                historyTitle: "السجل"
             }
         };
 
         let currentLang = 'es';
+        let compressionHistory = JSON.parse(localStorage.getItem('compressionHistory')) || [];
+        let compressionData = [];
+        let chart = null;
 
         function setLanguage(lang) {
             currentLang = lang;
@@ -881,19 +1183,42 @@
             document.getElementById('optAuto').textContent = t.optAuto;
             document.getElementById('labelOrigSize').textContent = t.labelOrigSize;
             document.getElementById('labelCompSize').textContent = t.labelCompSize;
+            document.getElementById('labelDimensions').textContent = t.labelDimensions;
             document.getElementById('loadingText').textContent = t.loadingText;
             document.getElementById('btnDownloadText').textContent = t.btnDownloadText;
             document.getElementById('btnResetText').textContent = t.btnResetText;
+            document.getElementById('btnBatchText').textContent = t.btnBatchText;
+            document.getElementById('presetMax').textContent = t.presetMax;
+            document.getElementById('presetHigh').textContent = t.presetHigh;
+            document.getElementById('presetMed').textContent = t.presetMed;
+            document.getElementById('presetLow').textContent = t.presetLow;
+            document.getElementById('historyTitle').textContent = t.historyTitle;
 
-            // Update direction for Arabic
             document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        }
+
+        // Theme toggle
+        let isDarkMode = true;
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode');
+            document.getElementById('themeToggle').textContent = isDarkMode ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            isDarkMode = false;
+            document.body.classList.add('light-mode');
+            document.getElementById('themeToggle').textContent = '☀️';
         }
 
         document.getElementById('langSelector').addEventListener('change', (e) => {
             setLanguage(e.target.value);
         });
 
-        // ===== COMPRESSOR LOGIC =====
+        // Compressor logic
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
         const previewSection = document.getElementById('previewSection');
@@ -908,22 +1233,22 @@
         const resetBtn = document.getElementById('resetBtn');
         const loading = document.getElementById('loading');
         const savingsBadge = document.getElementById('savingsBadge');
+        const dimensions = document.getElementById('dimensions');
+        const chartContainer = document.getElementById('chartContainer');
+        const historySection = document.getElementById('historySection');
+        const historyGrid = document.getElementById('historyGrid');
+        const presets = document.querySelectorAll('.preset-btn');
 
         let currentFile = null;
         let compressedBlob = null;
         let originalMimeType = null;
 
         uploadZone.addEventListener('click', () => fileInput.click());
-
         uploadZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadZone.classList.add('dragover');
         });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.classList.remove('dragover');
@@ -939,9 +1264,33 @@
             compressImage();
         });
 
+        presets.forEach(btn => {
+            btn.addEventListener('click', () => {
+                presets.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                qualitySlider.value = btn.dataset.quality;
+                qualityDisplay.textContent = btn.dataset.quality + '%';
+                compressImage();
+            });
+        });
+
         formatSelect.addEventListener('change', compressImage);
         downloadBtn.addEventListener('click', downloadImage);
         resetBtn.addEventListener('click', reset);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'v') {
+                navigator.clipboard.read().then(items => {
+                    items.forEach(item => {
+                        if (item.types.includes('image/png')) {
+                            item.getType('image/png').then(blob => handleFile(blob));
+                        }
+                    });
+                });
+            }
+            if (e.key === 'Enter' && compressedBlob) downloadImage();
+        });
 
         function handleFile(file) {
             if (!file.type.startsWith('image/')) {
@@ -973,6 +1322,7 @@
             img.onload = () => {
                 canvas.width = img.width;
                 canvas.height = img.height;
+                dimensions.textContent = img.width + 'x' + img.height;
                 ctx.drawImage(img, 0, 0);
 
                 const q = parseInt(qualitySlider.value) / 100;
@@ -988,6 +1338,7 @@
                     compressedImage.src = URL.createObjectURL(blob);
                     loading.classList.remove('active');
                     updateSavings();
+                    updateChart();
                 }, mime, q);
             };
 
@@ -1012,6 +1363,81 @@
             } else {
                 savingsBadge.style.display = 'none';
             }
+
+            compressionData.push({
+                format: formatSelect.value === 'auto' ? 'Original' : formatSelect.value.split('/')[1].toUpperCase(),
+                original: currentFile.size,
+                compressed: compressedBlob.size,
+                quality: qualitySlider.value
+            });
+
+            addToHistory();
+        }
+
+        function updateChart() {
+            chartContainer.classList.add('active');
+            
+            const formats = compressionData.map(d => d.format);
+            const savings = compressionData.map(d => Math.round(((d.original - d.compressed) / d.original) * 100));
+
+            if (chart) chart.destroy();
+
+            const ctx = document.getElementById('compressionChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: formats,
+                    datasets: [{
+                        label: 'Ahorro (%)',
+                        data: savings,
+                        backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function addToHistory() {
+            if (compressionHistory.length >= 5) compressionHistory.shift();
+            compressionHistory.push({
+                thumb: compressedImage.src,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            localStorage.setItem('compressionHistory', JSON.stringify(compressionHistory));
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            if (compressionHistory.length === 0) {
+                historySection.classList.remove('active');
+                return;
+            }
+            historySection.classList.add('active');
+            historyGrid.innerHTML = compressionHistory.map((item, idx) => `
+                <div class="history-item" onclick="loadHistoryItem(${idx})">
+                    <img src="${item.thumb}" alt="History ${idx}">
+                </div>
+            `).join('');
         }
 
         function downloadImage() {
@@ -1035,6 +1461,9 @@
             qualityDisplay.textContent = '80%';
             formatSelect.value = 'auto';
             savingsBadge.style.display = 'none';
+            chartContainer.classList.remove('active');
+            presets.forEach(b => b.classList.remove('active'));
+            compressionData = [];
         }
 
         function formatSize(bytes) {
@@ -1048,6 +1477,10 @@
         function getExt(mime) {
             return { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[mime] || 'jpg';
         }
+
+        // Initialize
+        setLanguage('es');
+        updateHistoryUI();
     </script>
 </body>
 </html>
